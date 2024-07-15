@@ -1,0 +1,261 @@
+### SQL Queries
+
+1. **Most Popular Products Among Customers**
+
+
+SELECT TOP 10
+    Product.Name AS ProductName,
+    SUM(SalesOrderDetail.OrderQty) AS TotalQuantitySold
+FROM Sales.SalesOrderDetail AS SalesOrderDetail
+INNER JOIN Production.Product AS Product
+    ON SalesOrderDetail.ProductID = Product.ProductID
+GROUP BY Product.Name
+ORDER BY TotalQuantitySold DESC;
+
+
+2. **Geographic Regions Generating the Most Sales**
+
+
+SELECT
+    SalesTerritory.[Group] AS GeographicRegion,
+    ROUND(SUM(SalesOrderHeader.TotalDue), 2) AS TotalSales
+FROM Sales.SalesOrderHeader AS SalesOrderHeader
+INNER JOIN Sales.Customer AS Customer
+    ON SalesOrderHeader.CustomerID = Customer.CustomerID
+INNER JOIN Sales.SalesTerritory AS SalesTerritory
+    ON SalesOrderHeader.TerritoryID = SalesTerritory.TerritoryID
+GROUP BY SalesTerritory.[Group]
+ORDER BY TotalSales DESC;
+
+
+3. **Sales Volume Change Over Time**
+
+
+SELECT 
+    YEAR(OrderDate) AS SalesYear, 
+    ROUND(SUM(TotalDue), 2) AS TotalSales 
+FROM Sales.SalesOrderHeader 
+GROUP BY YEAR(OrderDate)
+ORDER BY SalesYear;
+
+4. **Customer Segments Generating the Most Revenue**
+
+
+SELECT 
+    CASE 
+        WHEN Customer.AccountNumber LIKE 'AW%' THEN 'A'
+        WHEN Customer.AccountNumber LIKE 'CB%' THEN 'C'
+        ELSE 'B'
+    END AS CustomerSegment,
+    SUM(SalesOrderHeader.TotalDue) AS TotalRevenue
+FROM Sales.SalesOrderHeader AS SalesOrderHeader
+INNER JOIN Sales.Customer AS Customer
+    ON SalesOrderHeader.CustomerID = Customer.CustomerID
+GROUP BY 
+    CASE 
+        WHEN Customer.AccountNumber LIKE 'AW%' THEN 'A'
+        WHEN Customer.AccountNumber LIKE 'CB%' THEN 'C'
+        ELSE 'B'
+    END
+ORDER BY 
+    TotalRevenue DESC;
+
+
+5. **Effectiveness of Promotional Campaigns in Driving Sales**
+
+
+SELECT
+    SalesMonth,
+    ROUND(SUM(MonthlySalesRevenue), 2) AS TotalSalesRevenue,
+    MAX(PromotionRunning) AS PromotionRunning
+FROM (
+    SELECT
+        CONVERT(CHAR(7), SalesOrderHeader.OrderDate, 120) AS SalesMonth,
+        SUM(SalesOrderDetail.LineTotal) AS MonthlySalesRevenue,
+        CASE
+            WHEN EXISTS (
+                SELECT 1 FROM Sales.SpecialOffer AS SO
+                WHERE SalesOrderHeader.SalesOrderID IN (
+                    SELECT SalesOrderID FROM Sales.SalesOrderDetail
+                    WHERE SpecialOfferID = SO.SpecialOfferID
+                )
+                AND GETDATE() BETWEEN SO.StartDate AND SO.EndDate
+            )
+            THEN 'Yes'
+            ELSE 'No'
+        END AS PromotionRunning
+    FROM 
+        Sales.SalesOrderDetail AS SalesOrderDetail
+    INNER JOIN 
+        Sales.SalesOrderHeader AS SalesOrderHeader 
+        ON SalesOrderDetail.SalesOrderID = SalesOrderHeader.SalesOrderID
+    GROUP BY 
+        CONVERT(CHAR(7), SalesOrderHeader.OrderDate, 120),
+        SalesOrderHeader.SalesOrderID
+) AS MonthlySales
+GROUP BY 
+    SalesMonth
+ORDER BY 
+    SalesMonth DESC;
+
+
+6. **Most Successful Salespeople**
+
+
+SELECT 
+    sp.BusinessEntityID, 
+    ROUND(SUM(soh.TotalDue), 2) AS TotalSales, 
+    sp.SalesQuota
+FROM Sales.SalesPerson sp
+JOIN Sales.SalesOrderHeader soh
+    ON sp.BusinessEntityID = soh.SalesPersonID
+GROUP BY sp.BusinessEntityID, sp.SalesQuota
+ORDER BY TotalSales DESC;
+
+
+7. **Sales Performance by Geographic Region**
+
+
+SELECT 
+  ST.Name AS TerritoryName, 
+  SUM(SOH.TotalDue) AS TotalSales
+FROM 
+  Sales.SalesOrderHeader SOH 
+  INNER JOIN Sales.Customer C ON SOH.CustomerID = C.CustomerID
+  INNER JOIN Sales.SalesPerson SP ON SOH.SalesPersonID = SP.BusinessEntityID
+  INNER JOIN Sales.SalesTerritory ST ON SP.TerritoryID = ST.TerritoryID
+GROUP BY 
+  ST.Name
+ORDER BY 
+  TotalSales DESC;
+
+8. **Correlation Between Salesperson Characteristics and Performance**
+
+
+SELECT 
+    sp.TerritoryID,
+    sp.SalesQuota,
+    SUM(soh.TotalDue) AS TotalSales
+FROM 
+    Sales.SalesPerson sp
+    INNER JOIN Sales.SalesOrderHeader soh ON sp.BusinessEntityID = soh.SalesPersonID
+GROUP BY 
+    sp.TerritoryID,
+    sp.SalesQuota
+ORDER BY 
+    TotalSales DESC;
+
+
+9. **Most Revenue by Territory**
+
+
+SELECT st.TerritoryID, st.Name AS TerritoryName, ROUND(SUM(soh.TotalDue), 2) AS TotalRevenue
+FROM Sales.SalesTerritory st
+INNER JOIN Sales.SalesOrderHeader soh ON st.TerritoryID = soh.TerritoryID
+GROUP BY st.TerritoryID, st.Name
+ORDER BY TotalRevenue DESC;
+
+
+10. **Sales Performance by Territory**
+
+
+SELECT 
+  st.Name AS TerritoryName,
+  ROUND(SUM(soh.TotalDue), 2) AS TotalSales,
+  AVG(sod.OrderQty) AS AvgOrderQuantity,
+  AVG(sod.LineTotal) AS AvgOrderValue
+FROM 
+  Sales.SalesOrderHeader AS soh
+  INNER JOIN Sales.SalesOrderDetail AS sod ON soh.SalesOrderID = sod.SalesOrderID
+  INNER JOIN Sales.SalesPerson AS sp ON soh.SalesPersonID = sp.BusinessEntityID
+  INNER JOIN Sales.SalesTerritory AS st ON sp.TerritoryID = st.TerritoryID
+GROUP BY 
+  st.Name
+ORDER BY 
+  TotalSales DESC;
+
+11. **Most Profitable Products**
+
+
+SELECT TOP 10 
+    p.Name AS ProductName, 
+    SUM(od.LineTotal) AS TotalSales, 
+    SUM(od.LineTotal - (od.OrderQty * p.StandardCost)) AS TotalProfit,
+    (SUM(od.LineTotal - (od.OrderQty * p.StandardCost)) / SUM(od.LineTotal)) * 100 AS ProfitMargin
+FROM 
+    Sales.SalesOrderDetail od
+    INNER JOIN Production.Product p ON od.ProductID = p.ProductID
+GROUP BY 
+    p.Name
+ORDER BY 
+    ProfitMargin DESC;
+
+12. **Patterns or Trends in Product Sales Over Time**
+
+
+SELECT CONVERT(date, MAX(Sales.SalesOrderHeader.OrderDate)) AS MaxOrderDate, 
+       YEAR(Sales.SalesOrderHeader.OrderDate) AS OrderYear, 
+       MONTH(Sales.SalesOrderHeader.OrderDate) AS OrderMonth,
+       SUM(Sales.SalesOrderDetail.LineTotal) AS TotalSales
+FROM Sales.SalesOrderHeader
+JOIN Sales.SalesOrderDetail ON Sales.SalesOrderHeader.SalesOrderID = Sales.SalesOrderDetail.SalesOrderID
+GROUP BY YEAR(Sales.SalesOrderHeader.OrderDate), MONTH(Sales.SalesOrderHeader.OrderDate)
+ORDER BY OrderYear, OrderMonth;
+
+
+13. **Product Popularity by Geographic Region**
+
+
+SELECT TOP 10 
+    p.Name AS ProductName,
+    st.Name AS TerritoryName,
+    SUM(od.OrderQty) AS TotalQuantitySold
+FROM 
+    Sales.SalesOrderDetail od
+    INNER JOIN Production.Product p ON od.ProductID = p.ProductID
+    INNER JOIN Sales.SalesOrderHeader oh ON od.SalesOrderID = oh.SalesOrderID
+    INNER JOIN Sales.SalesTerritory st ON oh.TerritoryID = st.TerritoryID
+GROUP BY 
+    p.Name, 
+    st.Name
+ORDER BY 
+    TotalQuantitySold DESC;
+
+
+14. **Supplier Performance by Product Category**
+
+
+SELECT pc.Name AS CategoryName, v.Name AS VendorName,
+    COUNT(DISTINCT po.PurchaseOrderID) AS TotalOrders,
+    SUM(pod.OrderQty * pod.UnitPrice) AS TotalSpent
+FROM Production.Product AS p
+JOIN Production.ProductSubcategory AS pcs ON pcs.ProductSubcategoryID = p.ProductSubcategoryID
+JOIN Production.ProductCategory AS pc ON pc.ProductCategoryID = pcs.ProductCategoryID
+JOIN Purchasing.PurchaseOrderDetail AS pod ON pod.ProductID = p.ProductID
+JOIN Purchasing.PurchaseOrderHeader AS po ON po.PurchaseOrderID = pod.PurchaseOrderID
+JOIN Purchasing.Vendor AS v ON v.BusinessEntityID = po.VendorID
+GROUP BY pc.Name, v.Name
+ORDER BY pc.Name ASC, TotalSpent DESC;
+
+
+15. **Total Revenue by Order Year and Quarter**
+
+
+SELECT YEAR(OrderDate) AS OrderYear, DATEPART(QUARTER, OrderDate) AS OrderQuarter, SUM(TotalDue) AS TotalRevenue
+FROM Sales.SalesOrderHeader
+GROUP BY YEAR(OrderDate), DATEPART(QUARTER, OrderDate);
+
+
+### Recommendations
+
+1. **Invest in Marketing Initiatives for the Clothing Category**
+   - **Action:** Develop targeted advertising campaigns and explore influencer partnerships to promote clothing products.
+   - **Reason:** Although currently contributing a modest amount to overall sales, the clothing category has the potential to become a top performer.
+
+2. **Expand Product Range in the Components Category**
+   - **Action:** Introduce new brands or product lines within the components category.
+   - **Reason:** The components category already contributes significantly to revenue. Broadening the product range could attract more customers and increase sales.
+
+3. **Focus on International Sales**
+   - **Action:** Enhance global shipping options and collaborate with international retailers.
+   - **Reason:** International

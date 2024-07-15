@@ -1,0 +1,238 @@
+Here is the cleaned and well-formatted text:
+
+---
+
+## Project Sequence:
+
+1. **Data selection and data cleaning**
+2. **Loading the data into Power BI**
+3. **Data modelling**
+4. **DAX measures**
+5. **Data analysis**
+
+### Data Selection and Data Cleaning
+
+There are about 31 tables in the database. For this project, I selected 6 tables for the analysis. The tables selected are:
+
+- **FactInternetSales (Sales table)**
+- **DimCustomer (Customer table)**
+- **DimProduct (Product table)**
+- **DimEmployee (Employee table)**
+- **DimGeography (Geography table)**
+- **DimDate (Date table)**
+
+Each of these tables contains some columns that are not necessary for the analysis, so I only selected and cleaned the required columns in the tables.
+
+#### Sales Table
+
+The sales table contains the sales as well as the keys to other dimension tables. I selected the relevant columns and used the `CAST` function to convert the `OrderDate` from `TIMESTAMP` to `DATE`.
+
+```sql
+SELECT 
+  [ProductKey], 
+  [OrderDateKey], 
+  [CustomerKey], 
+  [SalesTerritoryKey], 
+  [SalesOrderNumber], 
+  [SalesOrderLineNumber], 
+  [OrderQuantity], 
+  [ProductStandardCost], 
+  [SalesAmount], 
+  CAST([OrderDate] AS date) AS OrderDate 
+FROM 
+  [FactInternetSales]
+```
+
+#### Customer Table
+
+The customer table contains the customer details. I used the `CONCAT` function to merge the customer's last name and first name together as “Customer Name” and also used the `CASE` function to clean the `MaritalStatus` and `Gender` columns.
+
+```sql
+SELECT 
+  [CustomerKey], 
+  [GeographyKey], 
+  CONCAT(firstname, ' ', lastname) AS [Customer Name], 
+  [BirthDate], 
+  CASE 
+    WHEN MaritalStatus = 'M' THEN 'Married' 
+    WHEN MaritalStatus = 'S' THEN 'Single' 
+  END AS MaritalStatus, 
+  CASE 
+    WHEN Gender = 'M' THEN 'Male' 
+    WHEN Gender = 'F' THEN 'Female' 
+  END AS Gender 
+FROM 
+  [DimCustomer]
+```
+
+#### Product Table
+
+The product details, product category, and product subcategory are stored in different tables. I joined the three tables together and selected the necessary columns. I also filled the NULL cells in the `Status` column with "Outdated" using the `ISNULL` function.
+
+```sql
+SELECT 
+  [ProductKey], 
+  p.[ProductSubcategoryKey], 
+  [EnglishProductName] AS [Product Name], 
+  EnglishProductCategoryName AS Category, 
+  EnglishProductSubcategoryName AS Subcategory, 
+  [StandardCost], 
+  [Color], 
+  [ModelName], 
+  ISNULL(Status, 'Outdated') AS Status 
+FROM 
+  [DimProduct] p 
+  JOIN DimProductSubcategory pc ON p.ProductSubcategoryKey = pc.ProductSubcategoryKey 
+  JOIN DimProductCategory pg ON pc.ProductCategoryKey = pg.ProductCategoryKey
+```
+
+#### Employee Table
+
+
+
+
+SELECT 
+  [EmployeeKey], 
+  [SalesTerritoryKey], 
+  CONCAT(firstname, ' ', lastname) AS [Employee Name], 
+  [Title], 
+  CASE 
+    WHEN MaritalStatus = 'M' THEN 'Married' 
+    WHEN MaritalStatus = 'S' THEN 'Single' 
+  END AS MaritalStatus, 
+  CASE 
+    WHEN Gender = 'M' THEN 'Male' 
+    WHEN Gender = 'F' THEN 'Female' 
+  END AS Gender, 
+  [DepartmentName] 
+FROM 
+  [DimEmployee]
+
+
+ Geography Table
+
+
+SELECT 
+  [GeographyKey], 
+  [City], 
+  [EnglishCountryRegionName] AS [Country Name], 
+  [SalesTerritoryRegion], 
+  [SalesTerritoryGroup], 
+  [PostalCode], 
+  g.[SalesTerritoryKey] 
+FROM 
+  [DimGeography] g 
+  JOIN [DimSalesTerritory] t ON g.SalesTerritoryKey = t.SalesTerritoryKey
+
+
+#### Date Table
+
+SELECT 
+  [DateKey], 
+  [FullDateAlternateKey], 
+  [EnglishDayNameOfWeek], 
+  [EnglishMonthName], 
+  [CalendarYear], 
+  [MonthNumberOfYear] 
+FROM 
+  [DimDate]
+
+After cleaning the tables, I saved each as an CSV.
+
+### Loading The Data Into Power BI
+
+Loading the data into Power BI is a straightforward process. Follow the steps below:
+
+1. Launch Power BI Desktop.
+2. On the home ribbon menu, click on "Get data".
+3. Select the data source (e.g., Excel, CSV, from web, etc.).
+4. Select the destination/folder where you have your file saved.
+5. Select the file and click on "Open". A window will pop up asking to load, transform, or cancel. Click on "Transform" to load the data into Power Query Editor.
+6. Check to see if each column has the correct data type (e.g., "text" for alphabets, etc.).
+7. Click on "New source" or "Recent source" on the home ribbon to import the other files.
+8. After importing the files, check the dataset to make sure the dataset is in the right format for analysis. Then click on "Close & apply" to load the data into Power BI.
+
+#Data Modelling
+
+Data modelling is the process of creating relationships between different pieces of data. To analyze different pieces of data together, data modelling is necessary.
+
+Our datasets contain a fact table (`FactInternetSales`) and dimension tables (Product, Employee, Customer, Geography, and Date tables).
+
+The fact table contains quantitative information, usually numeric and additive (e.g., sales, cost, profit, etc.), and other dimension table primary keys.
+
+Every table has a primary key (a key that uniquely identifies the table). When a primary key of a table is present in another table, it becomes a foreign key.
+
+I created a one-to-many data model between the tables by joining the primary keys of the lookup tables to their corresponding foreign keys in the fact table.
+
+### DAX Measures
+
+Data Analysis Expressions (DAX) is a programming language used for creating calculated columns, measures, and custom tables in Power BI.
+
+1. **Total Revenue**: Calculated by adding all the SalesAmount in the sales table using the `SUM` function.
+    ```DAX
+    Total Revenue = SUM(fsales[SalesAmount])
+    ```
+2. **Total Cost**: Calculated by adding the ProductStandardCost.
+    ```DAX
+    COGS = SUM(fsales[ProductStandardCost])
+    ```
+3. **Profit**: Calculated by subtracting the Total Cost from the Total Revenue.
+    ```DAX
+    Profit margin = [Total Revenue] - [COGS]
+    ```
+4. **Profit Margin %**: Calculated by dividing the Profit by the Total Revenue using the `DIVIDE` function.
+    ```DAX
+    Profit Margin % = DIVIDE([Profit margin], [Total Revenue], 0)
+    ```
+5. **Total Customer**: Counted using the `DISTINCTCOUNT` function.
+    ```DAX
+    Total Customers = DISTINCTCOUNT(dcustomer[CustomerName])
+    ```
+6. **Revenue Same Period Last Year**: Calculated using the `CALCULATE` function and the `SAMEPERIODLASTYEAR` function.
+    ```DAX
+    SPLY = CALCULATE([Total Revenue], SAMEPERIODLASTYEAR('Calendar'[Date]))
+    ```
+7. **Total Transaction**: Counted using the `COUNTROWS` function.
+    ```DAX
+    Total Transaction = COUNTROWS(fsales)
+    ```
+8. **Profit Margin % Contribution**: Calculated by dividing individual profit by the total profit.
+    ```DAX
+    Profit Margin Contribution % =
+    DIVIDE(
+        [Profit Margin],
+        CALCULATE(
+            [Profit Margin],
+            ALL(dproduct[ProductName]),
+            ALL(dcustomer[CustomerName]),
+            ALL(dgeography[City]),
+            ALL(dgeography[CountryName]),
+            ALL(dgeography[SalesTerritoryRegion]),
+            ALL(dgeography[SalesTerritoryGroup])
+        )
+    )
+    ```
+
+### Analysis
+
+#### Calculated Measures
+
+**KPIs:**
+1. Total Revenue generated: $29 million
+2. Total Cost: $17 million
+3. Profit Margin: $12 million
+4. Profit Margin %: 41.1%
+5. Total transaction: 60,398
+6. Total Customer: 18,000
+
+**Yearly Trends:**
+2022 had the highest revenue, followed by 2020. The year 2022 contributed to about 55% of the total revenue.
+
+**Revenue By Country And Territory:**
+The United States generated the highest revenue, followed closely by Australia. Canada had the lowest revenue. North America sales territory had the highest revenue, and the Pacific generated slightly higher revenue than Europe.
+
+**Revenue vs Revenue SPLY:**
+Total Revenue and Revenue SPLY diverged the most in January, when Total Revenue was $45,695 higher than Revenue SPLY.
+
+**Profit Margin %:**
+This is the percentage of profit generated on sales by each country. Although Canada did not generate the highest revenue,
