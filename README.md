@@ -15,6 +15,9 @@ The project consists of the following steps:
 * Step 5: Create measures and design visuals
 * Step 5: Deploy to Power BI Service
 
+  [796d90bc-ab79-4593-894b-4255fc0d0d2d.webm](https://github.com/user-attachments/assets/217fe2b1-7535-4d7c-9583-4c2c3701b7b8)
+
+
 
 ![Screenshot 2024-08-03 214425](https://github.com/user-attachments/assets/25e6024b-37fb-4016-9410-0dc74c6d6e41)
 ![Screenshot 2024-08-03 214411](https://github.com/user-attachments/assets/6a8e1997-cf43-40c0-b4ef-835020b55e8a)
