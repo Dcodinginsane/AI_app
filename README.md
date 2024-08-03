@@ -16,3 +16,7 @@ The project consists of the following steps:
 * Step 5: Deploy to Power BI Service
 
 
+![Screenshot 2024-08-03 214425](https://github.com/user-attachments/assets/25e6024b-37fb-4016-9410-0dc74c6d6e41)
+![Screenshot 2024-08-03 214411](https://github.com/user-attachments/assets/6a8e1997-cf43-40c0-b4ef-835020b55e8a)
+![Screenshot 2024-08-03 214351](https://github.com/user-attachments/assets/f7942ede-5587-4187-a841-b21ea8a20e69)
+![Screenshot 2024-08-03 214332](https://github.com/user-attachments/assets/dc6c00a4-75db-454e-ac6e-4675a51cb826)
